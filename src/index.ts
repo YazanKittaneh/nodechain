@@ -57,7 +57,7 @@ const Transaction = z.object({
   transactionId: z.number(),
   card_info: z.string(),
   refundable: z.boolean(),
-  refund_expiration_date: z.date().optional(),
+  refund_expiration_date: z.string().optional(),
   tax_state_amount: z.number(),
   tax_state_percent: z.number(),
   tax_federal_amount: z.number(),
@@ -155,7 +155,7 @@ const insertData = async (table: string, data: any) => {
   const transactionData = {
     card_info: result.transaction.card_info,
     refundable: result.transaction.refundable,
-    refund_expiration_date: result.transaction.refund_expiration_date ? new Date(result.transaction.refund_expiration_date) : undefined,
+    refund_expiration_date: result.transaction.refund_expiration_date,
     tax_state_amount: result.transaction.tax_state_amount,
     tax_state_percent: result.transaction.tax_state_percent,
     tax_federal_amount: result.transaction.tax_federal_amount,
@@ -165,7 +165,10 @@ const insertData = async (table: string, data: any) => {
     payment_type: result.transaction.payment_type,
   };
   try {
-    const validatedTransaction = Transaction.parse(transactionData);
+    const validatedTransaction = {
+      ...Transaction.parse(transactionData),
+      refund_expiration_date: transactionData.refund_expiration_date ? new Date(transactionData.refund_expiration_date) : undefined,
+    };
     
     const transactionPromise = insertData('transaction', validatedTransaction);
 
