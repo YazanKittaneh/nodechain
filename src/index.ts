@@ -1,11 +1,11 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import { number, z } from 'zod';
-import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from '@langchain/core/messages';
-import { Database } from './types/supabase';
+import { ChatOpenAI } from "@langchain/openai";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
+import { array, number, z } from 'zod';
+import { Database, Json } from './types/supabase';
 
 // Initialize Supabase client
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -31,61 +31,57 @@ const model = new ChatOpenAI({
   apiKey: OPENAI_API_KEY
 });
 
-// Define schemas
-const vendorSchema = z.object({
+
+
+// Vendor schema
+const Merchant = z.object({
   name: z.string(),
   address: z.string(),
   email: z.string(),
   phone_number: z.string(),
-  contact_name: z.string()
+  representative: z.string(),
 });
 
-const customerSchema = z.object({
-  name: z.string(),
-  address: z.string(),
-  email: z.string(),
-  number: z.string(),
-  project_ID: z.string()
-});
+// Item schema
+const Item = z.object({
 
-const itemSchema = z.object({
-  description: z.string(),
+  SKU_description: z.string(),
+  product_description: z.string(),
   quantity: z.number(),
   unit_price: z.number(),
   total_price: z.number(),
-  SKU_number: z.string()
+  tax_category: z.string()
 });
 
-const transactionSchema = z.object({
+const Transaction = z.object({
+  transactionId: z.number(),
   card_info: z.string(),
-  total_price: z.number(),
-  title: z.string(),
-  invoice_number: z.string(),
-  transaction_id: z.string(),
-  method: z.string(),
-  status: z.string(),
-  type: z.string()
-});
+  refundable: z.boolean(),
+  refund_expiration_date: z.date().optional(),
+  tax_state_amount: z.number(),
+  tax_state_percent: z.number(),
+  tax_federal_amount: z.number(),
+  tax_federal_percent: z.number(),
+  tax_total: z.number(),
+  payment_method: z.string(),
+  payment_type: z.string()
+})
 
-const companySchema = z.object({
-  name: z.string()
-});
-
-const receiptSchema = z.object({
-  vendor: vendorSchema,
-  customer: customerSchema,
-  items: z.array(itemSchema),
-  invoice: transactionSchema,
-  company_id: companySchema,
+// Receipt schema
+const Receipt = z.object({
   date: z.string(),
-  bank_trans_ref: z.number()
+  total_price: z.number(),
+  image_title: z.string(),
+  transaction: Transaction,
+  merchant: Merchant,
+  items: z.string(),
 });
 
-type Receipt = z.infer<typeof receiptSchema>;
+type ReceiptType = z.infer<typeof Receipt>;
 
-const structuredLlm = model.withStructuredOutput(receiptSchema);
+const structuredLlm = model.withStructuredOutput(Receipt);
 
-async function imageModel(inputs: { image: string, prompt: string }): Promise<Receipt> {
+async function imageModel(inputs: { image: string, prompt: string }): Promise<ReceiptType> {
   const imageData = await fs.readFileSync(inputs.image);
 
   const message = new HumanMessage({
@@ -103,125 +99,102 @@ async function imageModel(inputs: { image: string, prompt: string }): Promise<Re
     ],
   });
 
-  const res: Receipt = await structuredLlm.invoke([message]);
+  const res: ReceiptType = await structuredLlm.invoke([message]);
   console.log({ res });
   return res;
 }
 
 const visionPrompt = `
-  Given an image of a receipt, provide the following data structure in json:
-  const vendorSchema = z.object({
-    name: z.string(),
-    address: z.string(),
-    email: z.string(),
-    phone_number: z.string(),
-    contact_name: z.string()
-  });
-  
-  const customerSchema = z.object({
-    name: z.string(),
-    address: z.string(),
-    email: z.string(),
-    number: z.string(),
-    project_ID: z.string()
-  });
-  
-  const itemSchema = z.object({
-    description: z.string(),
-    quantity: z.number(),
-    unit_price: z.number(),
-    total_price: z.number(),
-    SKU_number: z.string()
-  });
-  
-  const transactionSchema = z.object({
-    card_info: z.string(),
-    total_price: z.number(),
-    title: z.string(),
-    invoice_number: z.string(),
-    transaction_id: z.string(),
-    method: z.string(),
-    status: z.string(),
-    type: z.string()
-  });
-  
-  
-  const companySchema = z.object({
-    name: z.string()
-  })
-  const receiptSchema = z.object({
-    vendor: vendorSchema,
-    customer: customerSchema,
-    items: z.array(itemSchema),
-    invoice: transactionSchema,
-    company_id: companySchema,
-    date: z.date(),
-    bank_trans_ref: z.number()
-  });
+  Given an image of a receipt, provide the following data structure in json
 `;
 
 
 const insertData = async (table: string, data: any) => {
+  console.log(`data coming in for ${table}`, data);
   const { data: resultData, error } = await supabase
     .from(table)
     .insert([data])
     .select('id');
-  console.log(`Data from ${table}: `, resultData);
-  console.log(`Errors from ${table}: `, error);
-};
 
+  if (error) {
+    console.log(`Errors from ${table}: `, error);
+    throw new Error(`Failed to insert data into ${table}: ${error.message}`);
+  }
+
+  if (resultData && resultData.length > 0) {
+    console.log(`Data from ${table}: `, resultData);
+    return resultData[0].id;
+  } else {
+    throw new Error(`No data returned from ${table} insertion`);
+  }
+};
 
 (async () => {
   const imagePath = "./output.jpg";
   const result = await imageModel({ image: imagePath, prompt: visionPrompt });
 
 
+  const merchantData = {
+    address: result.merchant.address,
+    representative: result.merchant.representative,
+    email: result.merchant.email,
+    name: result.merchant.name,
+    phone_number: result.merchant.phone_number
+  }
+  const merchantParsed = Merchant.parse(merchantData);
+  const merchantPromise = insertData('merchant', merchantParsed);
 
-  await insertData('vendors', {
-    address: result.vendor.address,
-    contact_name: result.vendor.contact_name,
-    email: result.vendor.email,
-    name: result.vendor.name,
-    phone_number: result.vendor.phone_number
-  });
 
-  await insertData('customers', {
-    name: result.customer.name,
-    address: result.customer.address,
-    email: result.customer.email,
-    number: result.customer.number,
-    project_id: result.customer.project_ID
-  });
+  let itemsJson = JSON.stringify(result.items);
 
-  await Promise.all(result.items.map(item => insertData('items', {
-    description: item.description,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    total_price: item.total_price,
-    sku_number: item.SKU_number
-  })));
+  const itemsPromise = insertData('items', { data: itemsJson });
 
-  await insertData('invoice', {
-    card_info: result.invoice.card_info,
-    total_price: result.invoice.total_price,
-    title: result.invoice.title,
-    invoice_number: result.invoice.invoice_number,
-    transaction_id: result.invoice.transaction_id,
-    method: result.invoice.method,
-    status: result.invoice.status,
-    type: result.invoice.type
-  });
 
-  await insertData('companies', {
-    name: result.company_id.name
-  });
 
-  await insertData('receipts', {
-    vendor_id: 1,
-    customer_id: 1,
-    date: new Date(result.date), // Convert date string to Date object
-    bank_trans_ref: result.bank_trans_ref
-  });
+  // Convert the string to a Date object before validation
+  const transactionData = {
+    card_info: result.transaction.card_info,
+    refundable: result.transaction.refundable,
+    refund_expiration_date: result.transaction.refund_expiration_date ? new Date(result.transaction.refund_expiration_date) : undefined,
+    tax_state_amount: result.transaction.tax_state_amount,
+    tax_state_percent: result.transaction.tax_state_percent,
+    tax_federal_amount: result.transaction.tax_federal_amount,
+    tax_federal_percent: result.transaction.tax_federal_percent,
+    tax_total: result.transaction.tax_total,
+    payment_method: result.transaction.payment_method,
+    payment_type: result.transaction.payment_type,
+  };
+  try {
+    const validatedTransaction = Transaction.parse(transactionData);
+    
+    const transactionPromise = insertData('transaction', validatedTransaction);
+
+    const [merchantId, itemsIds, transactionId] = await Promise.all([
+      merchantPromise,
+      itemsPromise,
+      transactionPromise
+    ]);
+
+    await insertData('receipts', {
+      image_title: imagePath.toString(), //add document name
+      merchantId: merchantId,
+      itemsId: itemsIds,
+      transactionId: transactionId,
+      date: new Date(result.date), // Convert date string to Date object
+      card_info: result.transaction.card_info,
+      total_price: result.total_price,
+      title: imagePath.toString(),
+      invoice_number: result.transaction.transactionId,
+      tax_state_amount: result.transaction.tax_state_amount,
+      tax_state_percent: result.transaction.tax_state_percent,
+      tax_federal_amount: result.transaction.tax_federal_amount,
+      tax_federal_percent: result.transaction.tax_federal_percent,
+      tax_total: result.transaction.tax_total,
+      method: result.transaction.payment_method,
+      type: result.transaction.payment_type,
+      fileName: imagePath.toString()
+    });
+  } catch (error) {
+    console.error("Error resolving promises or inserting data:", error);
+  }
 })();
-
-
