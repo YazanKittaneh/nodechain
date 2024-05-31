@@ -153,6 +153,7 @@ const insertData = async (table: string, data: any) => {
 
   // Convert the string to a Date object before validation
   const transactionData = {
+    transactionId: result.transaction.transactionId,
     card_info: result.transaction.card_info,
     refundable: result.transaction.refundable,
     refund_expiration_date: result.transaction.refund_expiration_date,
