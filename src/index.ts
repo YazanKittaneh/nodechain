@@ -56,7 +56,7 @@ const Transaction = z.object({
   transactionId: z.number().nullable().optional(),
   card_info: z.string().optional(),
   refundable: z.boolean().optional(),
-  refund_expiration_date: z.string().optional(),
+  refund_expiration_date: z.date().optional(),
   tax_state_amount: z.number().optional(),
   tax_state_percent: z.number().optional(),
   tax_federal_amount: z.number().optional(),
@@ -136,7 +136,7 @@ const insertData = async (table: string, data: any) => {
 
   const merchantData = {
     address: result.merchant.address,
-    representative: result.merchant.representative,
+    representative: result.merchant.representative ? result.merchant.representative : "",
     email: result.merchant.email,
     name: result.merchant.name,
     phone_number: result.merchant.phone_number
@@ -152,14 +152,14 @@ const insertData = async (table: string, data: any) => {
 
 
   // Convert the string to a Date object before validation
+  const currentTime = new Date(Date.now())
   const transactionData = {
     transactionId: result.transaction.transactionId,
-    refund_expiration_date: result.transaction.refund_expiration_date,
+    refund_expiration_date: result.transaction.refund_expiration_date ? new Date(result.transaction.refund_expiration_date) : currentTime,
   };
   try {
     const validatedTransaction = {
       ...Transaction.parse(transactionData),
-      refund_expiration_date: transactionData.refund_expiration_date ? new Date(transactionData.refund_expiration_date) : undefined,
     };
 
     const transactionPromise = insertData('Transaction', validatedTransaction);
@@ -171,7 +171,6 @@ const insertData = async (table: string, data: any) => {
     ]);
 
     await insertData('Receipt', {
-      image_title: imagePath.toString(), //add document name
       merchantId: merchantId,
       itemsId: itemsIds,
       transactionId: transactionId,
@@ -181,7 +180,7 @@ const insertData = async (table: string, data: any) => {
       title: imagePath.toString(),
       invoice_number: result.transaction.transactionId,
       tax_state_amount: result.transaction.tax_state_amount,
-      tax_state_percent: result.transaction.tax_state_percent,
+      tax_state_percent: result.transaction.tax_state_percent, 
       tax_federal_amount: result.transaction.tax_federal_amount,
       tax_federal_percent: result.transaction.tax_federal_percent,
       tax_total: result.transaction.tax_total,
