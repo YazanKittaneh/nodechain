@@ -1,0 +1,80 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+generator zod {
+  provider = "prisma-zod-generator"
+  output   = "./zod-schemas"
+}
+
+model Merchant {
+  id             Int       @id @default(autoincrement())
+  name           String
+  address        String
+  email          String
+  phone_number   String
+  representative String
+  receipts       Receipt[]
+}
+
+model Items {
+  id      Int       @id @default(autoincrement())
+  Data    Json
+  Receipt Receipt[]
+}
+
+model Transaction {
+  id                     Int       @id @default(autoincrement())
+  transactionId          Int
+  refund_expiration_date DateTime
+  Receipt                Receipt[]
+}
+
+model Project {
+  id   Int    @id @default(autoincrement())
+  name String
+}
+
+model Receipt {
+  id                  Int          @id @default(autoincrement())
+  merchantId          Int?
+  merchant            Merchant?    @relation(fields: [merchantId], references: [id])
+  itemsId             Int?
+  items               Items?       @relation(fields: [itemsId], references: [id])
+  transactionId       Int?
+  transaction         Transaction? @relation(fields: [transactionId], references: [id])
+  date                String
+  card_info           String
+  total_price         Float
+  title               String
+  invoice_number      String
+  tax_state_amount    Int
+  tax_state_percent   Float
+  tax_federal_amount  Int
+  tax_federal_percent Float
+  tax_total           Int
+  method              String
+  type                String
+  fileName            String
+}
+
+enum PaymentMethod {
+  GIFT_CARD
+  STORE_CREDIT
+  CREDIT
+  DEBIT
+}
+
+enum ReceiptType {
+  PURCHASE
+  RETURN
+  REFUND
+  OTHER
+}

@@ -4,3 +4,5 @@
 /dist
 /.vscode
 package-lock.json
+/src/prisma/generated
+/src/prisma/migration

@@ -1,14 +1,20 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "sourceMap": true,
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules", "**/*.test.ts"],
+  "test": [{ "validation": "email", "code": "invalid_string", "message": "Invalid email", "path": ["merchant", "email"] }, { "code": "invalid_type", "expected": "date", "received": "string", "path": ["trasnaction", "refund_expiration_date"], "message": "Expected date, received string" }, { "code": "invalid_type", "expected": "integer", "received": "float", "message": "Expected integer, received float", "path": ["trasnaction", "tax_state_amount"] }, { "code": "invalid_type", "expected": "integer", "received": "float", "message": "Expected integer, received float", "path": ["trasnaction", "tax_total"] }]
+
 }

@@ -22,7 +22,6 @@ export type Items = Database['public']['Tables']['items']['Row'];
 export type ReceiptItems = Database['public']['Tables']['receipt_items']['Row'];
 export type Receipts = Database['public']['Tables']['receipts']['Row'];
 export type Transactions = Database['public']['Tables']['transactions']['Row'];
-export type Vendors = Database['public']['Tables']['vendors']['Row'];
 
 // Initialize OpenAI model
 const model = new ChatOpenAI({
@@ -35,46 +34,46 @@ const model = new ChatOpenAI({
 
 // Vendor schema
 const Merchant = z.object({
-  name: z.string(),
-  address: z.string(),
-  email: z.string(),
-  phone_number: z.string(),
-  representative: z.string(),
+  name: z.string().default(""),
+  address: z.string().optional().default(""),
+  email: z.string().optional().default(""),
+  phone_number: z.string().optional().default(""),
+  representative: z.string().optional().default(""),
 });
 
 // Item schema
 const Item = z.object({
 
-  SKU_description: z.string(),
+  SKU_description: z.string().optional(),
   product_description: z.string(),
-  quantity: z.number(),
-  unit_price: z.number(),
-  total_price: z.number(),
-  tax_category: z.string()
+  quantity: z.number().default(0),
+  unit_price: z.number().default(0),
+  total_price: z.number().default(0),
+  tax_category: z.string().default(""),
 });
 
 const Transaction = z.object({
-  transactionId: z.number(),
-  card_info: z.string(),
-  refundable: z.boolean(),
-  refund_expiration_date: z.string().optional(),
-  tax_state_amount: z.number(),
-  tax_state_percent: z.number(),
-  tax_federal_amount: z.number(),
-  tax_federal_percent: z.number(),
-  tax_total: z.number(),
-  payment_method: z.string(),
-  payment_type: z.string()
+  transactionId: z.number().optional(),
+  card_info: z.string().default(""),
+  refundable: z.boolean().optional().default(false),
+  refund_expiration_date: z.string().optional().default(""),
+  tax_state_amount: z.number().optional().default(0),
+  tax_state_percent: z.number().optional().default(0),
+  tax_federal_amount: z.number().optional().default(0),
+  tax_federal_percent: z.number().optional().default(0),
+  tax_total: z.number().optional().default(0),
+  payment_method: z.string().optional().default(""),
+  payment_type: z.string().optional().default(""),
 })
 
 // Receipt schema
 const Receipt = z.object({
-  date: z.string(),
-  total_price: z.number(),
-  image_title: z.string(),
+  date: z.string().default(""),
+  total_price: z.number().default(0),
+  image_title: z.string().default(""),
   transaction: Transaction,
   merchant: Merchant,
-  items: z.string(),
+  items: z.string().default(""),
 });
 
 type ReceiptType = z.infer<typeof Receipt>;
@@ -100,7 +99,7 @@ async function imageModel(inputs: { image: string, prompt: string }): Promise<Re
   });
 
   const res: ReceiptType = await structuredLlm.invoke([message]);
-  console.log({ res });
+  //console.log({ res });
   return res;
 }
 
@@ -114,7 +113,8 @@ const insertData = async (table: string, data: any) => {
   const { data: resultData, error } = await supabase
     .from(table)
     .insert([data])
-    .select('id');
+    .select();
+
 
   if (error) {
     console.log(`Errors from ${table}: `, error);
@@ -142,36 +142,27 @@ const insertData = async (table: string, data: any) => {
     phone_number: result.merchant.phone_number
   }
   const merchantParsed = Merchant.parse(merchantData);
-  const merchantPromise = insertData('merchant', merchantParsed);
+  const merchantPromise = insertData('Merchant', merchantParsed);
 
 
   let itemsJson = JSON.stringify(result.items);
 
-  const itemsPromise = insertData('items', { data: itemsJson });
+  const itemsPromise = insertData('Items', { Data: itemsJson });
 
 
 
   // Convert the string to a Date object before validation
   const transactionData = {
     transactionId: result.transaction.transactionId,
-    card_info: result.transaction.card_info,
-    refundable: result.transaction.refundable,
     refund_expiration_date: result.transaction.refund_expiration_date,
-    tax_state_amount: result.transaction.tax_state_amount,
-    tax_state_percent: result.transaction.tax_state_percent,
-    tax_federal_amount: result.transaction.tax_federal_amount,
-    tax_federal_percent: result.transaction.tax_federal_percent,
-    tax_total: result.transaction.tax_total,
-    payment_method: result.transaction.payment_method,
-    payment_type: result.transaction.payment_type,
   };
   try {
     const validatedTransaction = {
       ...Transaction.parse(transactionData),
       refund_expiration_date: transactionData.refund_expiration_date ? new Date(transactionData.refund_expiration_date) : undefined,
     };
-    
-    const transactionPromise = insertData('transaction', validatedTransaction);
+
+    const transactionPromise = insertData('Transaction', validatedTransaction);
 
     const [merchantId, itemsIds, transactionId] = await Promise.all([
       merchantPromise,
@@ -179,7 +170,7 @@ const insertData = async (table: string, data: any) => {
       transactionPromise
     ]);
 
-    await insertData('receipts', {
+    await insertData('Receipt', {
       image_title: imagePath.toString(), //add document name
       merchantId: merchantId,
       itemsId: itemsIds,
