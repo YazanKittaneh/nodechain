@@ -55,7 +55,7 @@ const Item = z.object({
 const Transaction = z.object({
   transactionId: z.number().optional(),
   card_info: z.string().default("").optional(),
-  refundable: z.boolean().optional().default(false),
+  refundable: z.boolean().default(false).optional(),
   refund_expiration_date: z.string().optional().default(""),
   tax_state_amount: z.number().optional().default(0),
   tax_state_percent: z.number().optional().default(0),
