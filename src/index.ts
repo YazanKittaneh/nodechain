@@ -70,7 +70,7 @@ const Transaction = z.object({
 const Receipt = z.object({
   date: z.string().default("").optional(),
   total_price: z.number().default(0).optional(),
-  image_title: z.string().default(""),
+  image_title: z.string().default("").optional(),
   transaction: Transaction,
   merchant: Merchant,
   items: z.string(),
