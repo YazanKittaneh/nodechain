@@ -99,6 +99,7 @@ async function imageModel(inputs: { image: string, prompt: string }): Promise<Re
   });
 
   const res: ReceiptType = await structuredLlm.invoke([message]);
+  res.total_price = res.total_price ?? 0;
   //console.log({ res });
   return res;
 }
