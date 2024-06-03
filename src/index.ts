@@ -73,7 +73,7 @@ const Receipt = z.object({
   image_title: z.string().default(""),
   transaction: Transaction,
   merchant: Merchant,
-  items: z.string().default(""),
+  items: z.string(),
 });
 
 type ReceiptType = z.infer<typeof Receipt>;
@@ -173,7 +173,7 @@ const insertData = async (table: string, data: any) => {
     await insertData('Receipt', {
       image_title: imagePath.toString(), //add document name
       merchantId: merchantId,
-      itemsId: itemsIds,
+      items: itemsJson,
       transactionId: transactionId,
       date: new Date(result.date), // Convert date string to Date object
       card_info: result.transaction.card_info,
