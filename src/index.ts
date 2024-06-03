@@ -132,6 +132,7 @@ const insertData = async (table: string, data: any) => {
 (async () => {
   const imagePath = "./output.jpg";
   const result = await imageModel({ image: imagePath, prompt: visionPrompt });
+  result.total_price = result.total_price !== undefined ? result.total_price : 0;
 
 
   const merchantData = {
