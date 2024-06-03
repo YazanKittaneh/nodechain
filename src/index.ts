@@ -34,11 +34,11 @@ const model = new ChatOpenAI({
 
 // Vendor schema
 const Merchant = z.object({
-  name: z.string().default(""),
-  address: z.string().optional().default(""),
-  email: z.string().optional().default(""),
-  phone_number: z.string().optional().default(""),
-  representative: z.string().optional().default(""),
+  name: z.string(),
+  address: z.string().optional(),
+  email: z.string().optional(),
+  phone_number: z.string().optional(),
+  representative: z.string().optional(),
 });
 
 // Item schema
@@ -46,31 +46,31 @@ const Item = z.object({
 
   SKU_description: z.string().optional(),
   product_description: z.string(),
-  quantity: z.number().default(0),
-  unit_price: z.number().default(0),
+  quantity: z.number(),
+  unit_price: z.number(),
   total_price: z.number(),
-  tax_category: z.string().default(""),
+  tax_category: z.string()
 });
 
 const Transaction = z.object({
   transactionId: z.number().optional(),
-  card_info: z.string().default("").optional(),
-  refundable: z.boolean().default(false).optional(),
-  refund_expiration_date: z.string().default("").optional(),
-  tax_state_amount: z.number().optional().default(0),
-  tax_state_percent: z.number().optional().default(0),
-  tax_federal_amount: z.number().optional().default(0),
-  tax_federal_percent: z.number().optional().default(0),
-  tax_total: z.number().optional().default(0),
-  payment_method: z.string().optional().default(""),
-  payment_type: z.string().optional().default(""),
+  card_info: z.string().optional(),
+  refundable: z.boolean().optional(),
+  refund_expiration_date: z.string().optional(),
+  tax_state_amount: z.number().optional(),
+  tax_state_percent: z.number().optional(),
+  tax_federal_amount: z.number().optional(),
+  tax_federal_percent: z.number().optional(),
+  tax_total: z.number().optional(),
+  payment_method: z.string().optional(),
+  payment_type: z.string().optional(),
 })
 
 // Receipt schema
 const Receipt = z.object({
-  date: z.string().default("").optional(),
-  total_price: z.number().default(0).optional(),
-  image_title: z.string().default("").optional(),
+  date: z.string(),
+  total_price: z.number(),
+  image_title: z.string(),
   transaction: Transaction,
   merchant: Merchant,
   items: z.string(),
@@ -99,8 +99,6 @@ async function imageModel(inputs: { image: string, prompt: string }): Promise<Re
   });
 
   const res: ReceiptType = await structuredLlm.invoke([message]);
-  res.total_price = res.total_price ?? 0;
-  res.total_price = res.total_price ?? 0;
   //console.log({ res });
   return res;
 }
@@ -134,7 +132,6 @@ const insertData = async (table: string, data: any) => {
 (async () => {
   const imagePath = "./output.jpg";
   const result = await imageModel({ image: imagePath, prompt: visionPrompt });
-  result.total_price = result.total_price ?? 0;
 
 
   const merchantData = {
@@ -176,11 +173,11 @@ const insertData = async (table: string, data: any) => {
     await insertData('Receipt', {
       image_title: imagePath.toString(), //add document name
       merchantId: merchantId,
-      items: itemsJson,
+      itemsId: itemsIds,
       transactionId: transactionId,
       date: new Date(result.date), // Convert date string to Date object
       card_info: result.transaction.card_info,
-      total_price: result.total_price !== undefined ? result.total_price : 0,
+      total_price: result.total_price,
       title: imagePath.toString(),
       invoice_number: result.transaction.transactionId,
       tax_state_amount: result.transaction.tax_state_amount,
