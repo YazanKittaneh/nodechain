@@ -3,6 +3,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import { readdirSync } from 'fs';
 import path from 'path';
 import { array, number, z } from 'zod';
 import { Database, Json } from './types/supabase';
@@ -130,8 +131,12 @@ const insertData = async (table: string, data: any) => {
 };
 
 (async () => {
-  const imagePath = "./output.jpg";
-  const result = await imageModel({ image: imagePath, prompt: visionPrompt });
+  const inputDir = path.resolve(__dirname, 'input');
+  const files = readdirSync(inputDir);
+
+  for (const file of files) {
+    const imagePath = path.join(inputDir, file);
+    const result = await imageModel({ image: imagePath, prompt: visionPrompt });
 
 
   const merchantData = {
