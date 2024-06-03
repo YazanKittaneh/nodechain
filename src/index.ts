@@ -48,7 +48,7 @@ const Item = z.object({
   product_description: z.string(),
   quantity: z.number().default(0),
   unit_price: z.number().default(0),
-  total_price: z.number().default(0),
+  total_price: z.number(),
   tax_category: z.string().default(""),
 });
 
@@ -177,7 +177,7 @@ const insertData = async (table: string, data: any) => {
       transactionId: transactionId,
       date: new Date(result.date), // Convert date string to Date object
       card_info: result.transaction.card_info,
-      total_price: result.total_price,
+      total_price: result.total_price ?? 0,
       title: imagePath.toString(),
       invoice_number: result.transaction.transactionId,
       tax_state_amount: result.transaction.tax_state_amount,
