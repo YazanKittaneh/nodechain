@@ -68,7 +68,7 @@ const Transaction = z.object({
 
 // Receipt schema
 const Receipt = z.object({
-  date: z.string().default(""),
+  date: z.string().default("").optional(),
   total_price: z.number().default(0).optional(),
   image_title: z.string().default(""),
   transaction: Transaction,
