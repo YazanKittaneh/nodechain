@@ -36,7 +36,7 @@ const model = new ChatOpenAI({
 const Merchant = z.object({
   name: z.string(),
   address: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().nullable().optional(),
   phone_number: z.string().optional(),
   representative: z.string().optional(),
 });
@@ -53,7 +53,7 @@ const Item = z.object({
 });
 
 const Transaction = z.object({
-  transactionId: z.number().optional(),
+  transactionId: z.number().nullable().optional(),
   card_info: z.string().optional(),
   refundable: z.boolean().optional(),
   refund_expiration_date: z.string().optional(),

@@ -18,7 +18,7 @@ model Merchant {
   id             Int       @id @default(autoincrement())
   name           String
   address        String
-  email          String
+  email          String?
   phone_number   String
   representative String
   receipts       Receipt[]
@@ -32,7 +32,7 @@ model Items {
 
 model Transaction {
   id                     Int       @id @default(autoincrement())
-  transactionId          Int
+  transactionId          Int?
   refund_expiration_date DateTime
   Receipt                Receipt[]
 }
