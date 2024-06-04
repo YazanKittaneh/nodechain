@@ -3,10 +3,15 @@ import { ChatOpenAI } from "@langchain/openai";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import { readdirSync } from 'fs';
 import path from 'path';
 import { array, number, z } from 'zod';
 import { Database, Json } from './types/supabase';
+import * as util from 'util';
+import { globSync } from 'glob';
+
+const readdir = util.promisify(fs.readdir);
+const stat = util.promisify(fs.stat);
+
 
 // Initialize Supabase client
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -69,7 +74,7 @@ const Transaction = z.object({
 
 // Receipt schema
 const Receipt = z.object({
-  date: z.string(),
+  date: z.date().optional(),
   total_price: z.number(),
   image_title: z.string(),
   transaction: Transaction,
@@ -130,13 +135,10 @@ const insertData = async (table: string, data: any) => {
   }
 };
 
-(async () => {
-  const inputDir = path.resolve(__dirname, 'input');
-  const files = readdirSync(inputDir);
+async function processImage(filePath: string): Promise<void> {
 
-  for (const file of files) {
-    const imagePath = path.join(inputDir, file);
-    const result = await imageModel({ image: imagePath, prompt: visionPrompt });
+  const imagePath = filePath;
+  const result = await imageModel({ image: imagePath, prompt: visionPrompt });
 
 
   const merchantData = {
@@ -164,36 +166,71 @@ const insertData = async (table: string, data: any) => {
   };
   try {
     const validatedTransaction = {
+      
       ...Transaction.parse(transactionData),
     };
 
     const transactionPromise = insertData('Transaction', validatedTransaction);
-
-    const [merchantId, itemsIds, transactionId] = await Promise.all([
-      merchantPromise,
-      itemsPromise,
-      transactionPromise
-    ]);
-
-    await insertData('Receipt', {
-      merchantId: merchantId,
-      itemsId: itemsIds,
-      transactionId: transactionId,
-      date: new Date(result.date), // Convert date string to Date object
-      card_info: result.transaction.card_info,
-      total_price: result.total_price,
-      title: imagePath.toString(),
-      invoice_number: result.transaction.transactionId,
-      tax_state_amount: result.transaction.tax_state_amount,
-      tax_state_percent: result.transaction.tax_state_percent, 
-      tax_federal_amount: result.transaction.tax_federal_amount,
-      tax_federal_percent: result.transaction.tax_federal_percent,
-      tax_total: result.transaction.tax_total,
-      method: result.transaction.payment_method,
-      type: result.transaction.payment_type,
-      fileName: imagePath.toString()
-    });
+    try {
+      const [merchantId, itemsIds, transactionId] = await Promise.all([
+        merchantPromise,
+        itemsPromise,
+        transactionPromise
+      ]);
+  
+      await insertData('Receipt', {
+        merchantId: merchantId,
+        itemsId: itemsIds,
+        transactionId: transactionId,
+        date: result.date ? new Date(result.date) : currentTime, // Convert date string to Date object
+        card_info: result.transaction.card_info,
+        total_price: result.total_price,
+        title: imagePath.toString(),
+        invoice_number: result.transaction.transactionId,
+        tax_state_amount: result.transaction.tax_state_amount,
+        tax_state_percent: result.transaction.tax_state_percent,
+        tax_federal_amount: result.transaction.tax_federal_amount,
+        tax_federal_percent: result.transaction.tax_federal_percent,
+        tax_total: result.transaction.tax_total,
+        method: result.transaction.payment_method,
+        type: result.transaction.payment_type,
+        fileName: imagePath.toString()
+      });
+    } catch (error) {
+      console.error("Error resolving promises or inserting data:", error);
+    }
   } catch (error) {
     console.error("Error resolving promises or inserting data:", error);
   }
+  
+};
+
+
+
+function getJpgFiles(dir: string): string[] {
+  console.log("THIS 4:",dir )
+  let files = globSync(`${dir}/*.jpg`);
+  return files
+}
+
+
+(async () => {
+  const inputDir = path.join(__dirname, './input');
+  console.log("THIS WORKS:",inputDir )
+  try {
+    const files =  getJpgFiles(inputDir)
+
+    console.log("THIS 2:",files )
+
+    files.forEach((file) =>{
+      console.log("THIS 3:",inputDir )
+
+      console.log(`Processing file: ${file}`);
+       processImage(file);
+      console.log(`Finished processing file: ${file}`);
+    })
+  } catch (error) {
+    console.error('Error processing images:', error);
+  }
 })();
+
