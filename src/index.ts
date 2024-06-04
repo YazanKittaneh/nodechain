@@ -142,7 +142,7 @@ async function processImage(filePath: string): Promise<void> {
 
 
   const merchantData = {
-    address: result.merchant.address,
+    address: result.merchant.address || "N/A",
     representative: result.merchant.representative ? result.merchant.representative : "",
     email: result.merchant.email,
     name: result.merchant.name,
@@ -163,6 +163,13 @@ async function processImage(filePath: string): Promise<void> {
   const transactionData = {
     transactionId: result.transaction.transactionId,
     refund_expiration_date: result.transaction.refund_expiration_date ? new Date(result.transaction.refund_expiration_date) : currentTime,
+    tax_state_amount: result.transaction.tax_state_amount || 0,
+    tax_state_percent: result.transaction.tax_state_percent || 0,
+    tax_federal_amount: result.transaction.tax_federal_amount || 0,
+    tax_federal_percent: result.transaction.tax_federal_percent || 0,
+    tax_total: result.transaction.tax_total || 0,
+    payment_method: result.transaction.payment_method || "N/A",
+    payment_type: result.transaction.payment_type || "N/A"
   };
   try {
     const validatedTransaction = {
