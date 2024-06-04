@@ -105,6 +105,11 @@ async function imageModel(inputs: { image: string, prompt: string }): Promise<Re
   });
 
   const res: ReceiptType = await structuredLlm.invoke([message]);
+
+  // Convert refund_expiration_date to Date if it's a string
+  if (res.transaction.refund_expiration_date && typeof res.transaction.refund_expiration_date === 'string') {
+    res.transaction.refund_expiration_date = new Date(res.transaction.refund_expiration_date);
+  }
   //console.log({ res });
   return res;
 }
