@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Receipt" ALTER COLUMN "date" SET DATA TYPE TEXT;

@@ -4,19 +4,8 @@ import { boolean, z, number } from 'zod';
 const PaymentMethod = z.enum(["GIFT_CARD", "STORE_CREDIT", "CREDIT", "DEBIT"]);
 const ReceiptType = z.enum(["PURCHASE", "RETURN", "REFUND", "OTHER"]);
 
-// Vendor schema
-const Merchant = z.object({
-  name: z.string(),
-  address: z.string(),
-  email: z.string(),
-  phone_number: z.string(),
-  representative: z.string(),
-});
-
-// Item schema
 const Item = z.object({
-  SKU_number: z.number().int(),
-  SKU_description: z.string(),
+  SKU_description: z.string().optional(),
   product_description: z.string(),
   quantity: z.number(),
   unit_price: z.number(),
@@ -24,31 +13,35 @@ const Item = z.object({
   tax_category: z.string()
 });
 
-const Transaction = z.object({
-  transactionId: z.number(),
-  total: z.number(),
-  card_info: z.string(),
-  refundable: z.boolean(),
-  refund_expiration_date: z.date().optional(),
-  tax_state_amount: z.number().int(),
-  tax_state_percent: z.number(),
-  tax_federal_amount: z.number().int(),
-  tax_federal_percent: z.number(),
-  tax_total: z.number().int(),
-  payment_method: z.string(),
-  payment_type: z.string()
-})
-
-// Receipt schema
 const Receipt = z.object({
-  date: z.string(),
-  total: z.number(),
+  date: z.string().optional(),
+  total_price: z.number(),
   image_title: z.string(),
-  merchant: Merchant,
-  items: z.array(Item),
-  trasnaction: Transaction
+  receipt_type: ReceiptType, // Added enum for receipt type
+  transaction: z.object({
+    transactionId: z.number().nullable().optional(),
+    card_info: z.string().optional(),
+    refundable: z.boolean().optional(),
+    refund_expiration_date: z.string().optional(),
+    tax_state_amount: z.number().optional(),
+    tax_state_percent: z.number().optional(),
+    tax_federal_amount: z.number().optional(),
+    tax_federal_percent: z.number().optional(),
+    tax_total: z.number().optional(),
+    payment_method: PaymentMethod.optional(), // Used PaymentMethod enum
+    payment_type: z.enum(["In-store", "Online"]).optional(),
+  }),
+  merchant: z.object({
+    name: z.string(),
+    address: z.string().optional(),
+    email: z.string().nullable().optional(),
+    phone_number: z.string().optional(),
+    representative: z.string().optional(),
+  }),
+  items: z.array(Item) // Array of Item objects
 });
 
 
 
-export { Merchant, Item, Transaction, Receipt, PaymentMethod, ReceiptType };
+
+export { Receipt, PaymentMethod, ReceiptType };

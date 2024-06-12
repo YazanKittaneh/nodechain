@@ -1,13 +1,25 @@
-import { HumanMessage } from '@langchain/core/messages';
+import { AIMessageChunk, BaseMessage, BaseMessageChunk, HumanMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from "@langchain/openai";
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { RunnableWithMessageHistory } from '@langchain/core/runnables';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import path from 'path';
-import { array, number, z } from 'zod';
+import { promises as fsp } from 'fs'; // Correct import for fs.promises
+import path, { resolve } from 'path';
+import { array, number, Schema, z, ZodString } from 'zod';
 import { Database, Json } from './types/supabase';
 import * as util from 'util';
 import { globSync } from 'glob';
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import {
+  RunnablePassthrough,
+  RunnableSequence,
+} from "@langchain/core/runnables";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
+import { BaseChatMessageHistory, } from '@langchain/core/dist/chat_history';
+import { scheduler } from 'timers/promises';
 
 const readdir = util.promisify(fs.readdir);
 const stat = util.promisify(fs.stat);
@@ -21,13 +33,7 @@ export const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 
 const supabase: SupabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'public' } });
 
-// Define types
-export type Companies = Database['public']['Tables']['companies']['Row'];
-export type Customers = Database['public']['Tables']['customers']['Row'];
-export type Items = Database['public']['Tables']['items']['Row'];
-export type ReceiptItems = Database['public']['Tables']['receipt_items']['Row'];
-export type Receipts = Database['public']['Tables']['receipts']['Row'];
-export type Transactions = Database['public']['Tables']['transactions']['Row'];
+
 
 // Initialize OpenAI model
 const model = new ChatOpenAI({
@@ -36,58 +42,96 @@ const model = new ChatOpenAI({
   apiKey: OPENAI_API_KEY
 });
 
+const receiptFieldDescriptions = {
+  id: "Unique identifier for the receipt",
+  date: "Date of the receipt",
+  card_info: "Card information used for the transaction",
+  total_price: "Total price on the receipt",
+  total_tax_paid: "Total tax paid",
+  receipt_number: "Unique receipt number",
+  tax_state_amount: "State tax amount",
+  tax_federal_amount: "Federal tax amount",
+  tax_total: "Total tax amount",
+  payment_type: "Method of payment",
+  transaction_type: "Type of transaction",
+  fileName: "Name of the receipt file",
+  merchant_name: "Name of the merchant",
+  merchant_address: "Address of the merchant",
+  merchant_email: "Email of the merchant",
+  merchant_phone_number: "Phone number of the merchant",
+  merchant_representative: "Representative of the merchant",
+  refund_expiration_date: "Expiration date for refunds",
+};
 
 
-// Vendor schema
-const Merchant = z.object({
-  name: z.string(),
-  address: z.string().optional(),
-  email: z.string().nullable().optional(),
-  phone_number: z.string().optional(),
-  representative: z.string().optional(),
+
+const paymentMethodSchema = z.enum(["GIFT_CARD", "STORE_CREDIT", "CREDIT", "DEBIT"]);
+const receiptTypeSchema = z.enum(["PURCHASE", "RETURN", "REFUND", "OTHER"]);
+const taxTypeSchema = z.enum([
+  "WAGES",
+  "UTILITIES",
+  "PHONE",
+  "INTERNET",
+  "RENT",
+  "REPAIRS_MAINTENANCE",
+  "JANITOR",
+  "LABOR",
+  "BANK_FEES",
+  "LOAN_INTEREST_PAID",
+  "GASOLINE_EXPENSES",
+  "CAR_REPAIR_EXPENSES",
+  "OFFICE_SUPPLIES",
+  "EQUIPMENT",
+  "TOOLS",
+  "SUBSCRIPTIONS",
+  "TAXES",
+  "LICENSES",
+  "ADVERTISING",
+  "ACCOUNTING_FEES",
+  "INSURANCE",
+  "PROFESSIONAL_SERVICES",
+  "POSTAGE",
+  "OTHER",
+  "NOT RECEIPT",
+  "BACK OF RECEIPT"
+
+]);
+
+const receiptSchema = z.object({
+  back_of_receipt: z.boolean(),
+  date: z.string().optional().nullable(),
+  credit_card_digits: z.string().optional().nullable(),
+  total_price: z.number().optional().nullable(),
+  total_tax_paid: z.number().optional().nullable(),
+  receipt_number: z.string().optional().nullable(),
+  tax_state_amount: z.number().optional().nullable(),
+  tax_federal_amount: z.number().optional().nullable(),
+  tax_total: z.number().optional().nullable(),
+  payment_type: paymentMethodSchema.optional().nullable(),
+  transaction_type: receiptTypeSchema.optional().nullable(),
+  fileName: z.string().optional().nullable(),
+  merchant_name: z.string().optional().nullable(),
+  merchant_address: z.string().optional().nullable(),
+  merchant_email: z.string().optional().nullable(),
+  merchant_phone_number: z.string().optional().nullable(),
+  merchant_representative: z.string().optional().nullable(),
+  refund_expiration_date: z.string().optional().nullable(),
 });
 
-// Item schema
-const Item = z.object({
-
-  SKU_description: z.string().optional(),
-  product_description: z.string(),
-  quantity: z.number(),
-  unit_price: z.number(),
-  total_price: z.number(),
-  tax_category: z.string()
-});
-
-const Transaction = z.object({
-  transactionId: z.number().nullable().optional(),
-  card_info: z.string().optional(),
-  refundable: z.boolean().optional(),
-  refund_expiration_date: z.date().optional(),
-  tax_state_amount: z.number().optional(),
-  tax_state_percent: z.number().optional(),
-  tax_federal_amount: z.number().optional(),
-  tax_federal_percent: z.number().optional(),
-  tax_total: z.number().optional(),
-  payment_method: z.string().optional(),
-  payment_type: z.string().optional(),
+const taxSchema = z.object({
+  tax_type: taxTypeSchema.optional().nullable()
 })
 
-// Receipt schema
-const Receipt = z.object({
-  date: z.date().optional(),
-  total_price: z.number(),
-  image_title: z.string(),
-  transaction: Transaction,
-  merchant: Merchant,
-  items: z.string(),
-});
 
-type ReceiptType = z.infer<typeof Receipt>;
 
-const structuredLlm = model.withStructuredOutput(Receipt);
+type ReceiptType = z.infer<typeof receiptSchema>;
+type TaxType = z.infer<typeof taxSchema>;
 
-async function imageModel(inputs: { image: string, prompt: string }): Promise<ReceiptType> {
+
+async function imageModel(inputs: { image: string, prompt: string, schema: Object }): Promise<typeof inputs.schema> {
+  const structuredLlm = model.withStructuredOutput(inputs.schema);
   const imageData = await fs.readFileSync(inputs.image);
+
 
   const message = new HumanMessage({
     content: [
@@ -104,28 +148,22 @@ async function imageModel(inputs: { image: string, prompt: string }): Promise<Re
     ],
   });
 
-  const res: ReceiptType = await structuredLlm.invoke([message]);
-
-  // Convert refund_expiration_date to Date if it's a string
-  if (res.transaction.refund_expiration_date && typeof res.transaction.refund_expiration_date === 'string') {
-    res.transaction.refund_expiration_date = new Date(res.transaction.refund_expiration_date);
-  }
-  //console.log({ res });
+  const res: typeof inputs.schema = await structuredLlm.invoke([message]);
+  console.log("res: ", res)
   return res;
 }
-
 const visionPrompt = `
-  Given an image of a receipt, provide the following data structure in json
+  Given an image of a receipt, provide the following data structure in json.
 `;
 
-
+const followupPrompt = `
+Given an image of a receipt, provide the following USA tax catagorization data structure in json
+`
 const insertData = async (table: string, data: any) => {
-  console.log(`data coming in for ${table}`, data);
   const { data: resultData, error } = await supabase
     .from(table)
     .insert([data])
     .select();
-
 
   if (error) {
     console.log(`Errors from ${table}: `, error);
@@ -133,116 +171,66 @@ const insertData = async (table: string, data: any) => {
   }
 
   if (resultData && resultData.length > 0) {
-    console.log(`Data from ${table}: `, resultData);
-    return resultData[0].id;
+    const id = resultData[0].id
+    console.log(`successfuly inserted ${table} at id:${id}`)
+    return id;
   } else {
     throw new Error(`No data returned from ${table} insertion`);
   }
 };
 
-async function processImage(filePath: string): Promise<void> {
-
+async function processImage(filePath: string): Promise<ReceiptType> {
   const imagePath = filePath;
-  const result = await imageModel({ image: imagePath, prompt: visionPrompt });
-
-
-  const merchantData = {
-    address: result.merchant.address || "N/A",
-    representative: result.merchant.representative ? result.merchant.representative : "",
-    email: result.merchant.email,
-    name: result.merchant.name,
-    phone_number: result.merchant.phone_number
+  const result = await imageModel({ image: imagePath, prompt: visionPrompt, schema: receiptSchema });
+  const generatedReceipt = receiptSchema.parse(result)
+  if(generatedReceipt.back_of_receipt){
+    moveFile(filePath, 'failed')
+   return  generatedReceipt
   }
-  const merchantParsed = Merchant.parse(merchantData);
-  const merchantPromise = insertData('Merchant', merchantParsed);
-
-
-  let itemsJson = JSON.stringify(result.items);
-
-  const itemsPromise = insertData('Items', { Data: itemsJson });
-
-
-
-  // Convert the string to a Date object before validation
-  const currentTime = new Date(Date.now())
-  const transactionData = {
-    transactionId: result.transaction.transactionId,
-    refund_expiration_date: result.transaction.refund_expiration_date ? new Date(result.transaction.refund_expiration_date) : currentTime,
-    tax_state_amount: result.transaction.tax_state_amount || 0,
-    tax_state_percent: result.transaction.tax_state_percent || 0,
-    tax_federal_amount: result.transaction.tax_federal_amount || 0,
-    tax_federal_percent: result.transaction.tax_federal_percent || 0,
-    tax_total: result.transaction.tax_total || 0,
-    payment_method: result.transaction.payment_method || "N/A",
-    payment_type: result.transaction.payment_type || "N/A"
-  };
-  try {
-    const validatedTransaction = {
-      
-      ...Transaction.parse(transactionData),
-    };
-
-    const transactionPromise = insertData('Transaction', validatedTransaction);
-    try {
-      const [merchantId, itemsIds, transactionId] = await Promise.all([
-        merchantPromise,
-        itemsPromise,
-        transactionPromise
-      ]);
-  
-      await insertData('Receipt', {
-        merchantId: merchantId,
-        itemsId: itemsIds,
-        transactionId: transactionId,
-        date: result.date ? new Date(result.date) : currentTime, // Convert date string to Date object
-        card_info: result.transaction.card_info,
-        total_price: result.total_price,
-        title: imagePath.toString(),
-        invoice_number: result.transaction.transactionId,
-        tax_state_amount: result.transaction.tax_state_amount,
-        tax_state_percent: result.transaction.tax_state_percent,
-        tax_federal_amount: result.transaction.tax_federal_amount,
-        tax_federal_percent: result.transaction.tax_federal_percent,
-        tax_total: result.transaction.tax_total,
-        method: result.transaction.payment_method,
-        type: result.transaction.payment_type,
-        fileName: imagePath.toString()
-      });
-    } catch (error) {
-      console.error("Error resolving promises or inserting data:", error);
-    }
-  } catch (error) {
-    console.error("Error resolving promises or inserting data:", error);
-  }
-  
-};
+  const taxes = await imageModel({ image: imagePath, prompt: followupPrompt, schema: taxSchema })
+  const generatedTaxCode = taxSchema.parse(taxes)
+  console.log(`Tax file for${generatedReceipt.fileName}:\n${generatedTaxCode.tax_type}`)
+  generatedReceipt.payment_type = generatedReceipt.payment_type;
+  generatedReceipt.transaction_type = generatedReceipt.transaction_type;
+  generatedReceipt.fileName = filePath.split('/').pop();
+  const receiptPromise = insertData('Receipt', generatedReceipt);
+  moveFile(filePath, 'success')
+  return receiptPromise
+}
 
 
 
+//gets all the jpg files inside of directory
 function getJpgFiles(dir: string): string[] {
-  console.log("THIS 4:",dir )
   let files = globSync(`${dir}/*.jpg`);
   return files
 }
 
 
+async function moveFile(file: string, status: string): Promise<void> {
+  const newDir = path.join(path.dirname(file), status);
+  try {
+    await fsp.mkdir(newDir, { recursive: true });
+    const newFilePath = path.join(newDir, path.basename(file));
+    await fsp.rename(file, newFilePath);
+    console.log(`Moved file to: ${status}`);
+  } catch (err) {
+    console.error(`Failed to move file ${file}: ${(err as Error).message}`);
+  }
+}
+
+
 (async () => {
   const inputDir = path.join(__dirname, './input');
-  console.log("THIS WORKS:",inputDir )
+
   try {
-    const files =  getJpgFiles(inputDir)
-
-    console.log("THIS 2:",files )
-
-    files.forEach((file) =>{
-      console.log("THIS 3:",inputDir )
-
+    const files = getJpgFiles(inputDir)
+    await Promise.all(files.map(async (file) => {
       console.log(`Processing file: ${file}`);
-       processImage(file);
-      console.log(`Finished processing file: ${file}`);
-    })
+      processImage(file)
+    }))
   } catch (error) {
-    console.error('Error processing images:', error);
+    console.error('Error processing images:', (error as Error).message);
   }
 })();
 

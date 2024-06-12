@@ -14,55 +14,26 @@ generator zod {
   output   = "./zod-schemas"
 }
 
-model Merchant {
-  id             Int       @id @default(autoincrement())
-  name           String
-  address        String
-  email          String?
-  phone_number   String
-  representative String
-  receipts       Receipt[]
-}
-
-model Items {
-  id      Int       @id @default(autoincrement())
-  Data    Json
-  Receipt Receipt[]
-}
-
-model Transaction {
-  id                     Int       @id @default(autoincrement())
-  transactionId          Int?
-  refund_expiration_date DateTime
-  Receipt                Receipt[]
-}
-
-model Project {
-  id   Int    @id @default(autoincrement())
-  name String
-}
-
 model Receipt {
-  id                  Int          @id @default(autoincrement())
-  merchantId          Int?
-  merchant            Merchant?    @relation(fields: [merchantId], references: [id])
-  itemsId             Int?
-  items               Items?       @relation(fields: [itemsId], references: [id])
-  transactionId       Int?
-  transaction         Transaction? @relation(fields: [transactionId], references: [id])
-  date                String
-  card_info           String
-  total_price         Float
-  title               String
-  invoice_number      String
-  tax_state_amount    Int
-  tax_state_percent   Float
-  tax_federal_amount  Int
-  tax_federal_percent Float
-  tax_total           Int
-  method              String
-  type                String
-  fileName            String
+  id                      Int            @id @default(autoincrement())
+  back_of_receipt         Boolean?
+  date                    String?
+  credit_card_digits      String?
+  total_price             Float?
+  total_tax_paid          Float?
+  receipt_number          String?
+  tax_state_amount        Float?
+  tax_federal_amount      Float?
+  tax_total               Float?
+  payment_type            PaymentMethod?
+  transaction_type        ReceiptType?
+  fileName                String?
+  merchant_name           String?
+  merchant_address        String?
+  merchant_email          String?
+  merchant_phone_number   String?
+  merchant_representative String?
+  refund_expiration_date  String?
 }
 
 enum PaymentMethod {

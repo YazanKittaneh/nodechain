@@ -1,8 +1,12 @@
 import { z } from 'zod';
 import { IntFieldUpdateOperationsInputObjectSchema } from './IntFieldUpdateOperationsInput.schema';
-import { NullableIntFieldUpdateOperationsInputObjectSchema } from './NullableIntFieldUpdateOperationsInput.schema';
-import { StringFieldUpdateOperationsInputObjectSchema } from './StringFieldUpdateOperationsInput.schema';
-import { FloatFieldUpdateOperationsInputObjectSchema } from './FloatFieldUpdateOperationsInput.schema';
+import { NullableBoolFieldUpdateOperationsInputObjectSchema } from './NullableBoolFieldUpdateOperationsInput.schema';
+import { NullableStringFieldUpdateOperationsInputObjectSchema } from './NullableStringFieldUpdateOperationsInput.schema';
+import { NullableFloatFieldUpdateOperationsInputObjectSchema } from './NullableFloatFieldUpdateOperationsInput.schema';
+import { PaymentMethodSchema } from '../enums/PaymentMethod.schema';
+import { NullableEnumPaymentMethodFieldUpdateOperationsInputObjectSchema } from './NullableEnumPaymentMethodFieldUpdateOperationsInput.schema';
+import { ReceiptTypeSchema } from '../enums/ReceiptType.schema';
+import { NullableEnumReceiptTypeFieldUpdateOperationsInputObjectSchema } from './NullableEnumReceiptTypeFieldUpdateOperationsInput.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -14,105 +18,136 @@ const Schema: z.ZodType<Prisma.ReceiptUncheckedUpdateInput> = z
         z.lazy(() => IntFieldUpdateOperationsInputObjectSchema),
       ])
       .optional(),
-    merchantId: z
+    back_of_receipt: z
       .union([
-        z.number(),
-        z.lazy(() => NullableIntFieldUpdateOperationsInputObjectSchema),
-      ])
-      .optional()
-      .nullable(),
-    itemsId: z
-      .union([
-        z.number(),
-        z.lazy(() => NullableIntFieldUpdateOperationsInputObjectSchema),
-      ])
-      .optional()
-      .nullable(),
-    transactionId: z
-      .union([
-        z.number(),
-        z.lazy(() => NullableIntFieldUpdateOperationsInputObjectSchema),
+        z.boolean(),
+        z.lazy(() => NullableBoolFieldUpdateOperationsInputObjectSchema),
       ])
       .optional()
       .nullable(),
     date: z
       .union([
         z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
-    card_info: z
+      .optional()
+      .nullable(),
+    credit_card_digits: z
       .union([
         z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
+      .optional()
+      .nullable(),
     total_price: z
       .union([
         z.number(),
-        z.lazy(() => FloatFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableFloatFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
-    title: z
+      .optional()
+      .nullable(),
+    total_tax_paid: z
+      .union([
+        z.number(),
+        z.lazy(() => NullableFloatFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
+    receipt_number: z
       .union([
         z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
-    invoice_number: z
-      .union([
-        z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
-      ])
-      .optional(),
+      .optional()
+      .nullable(),
     tax_state_amount: z
       .union([
         z.number(),
-        z.lazy(() => IntFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableFloatFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
-    tax_state_percent: z
-      .union([
-        z.number(),
-        z.lazy(() => FloatFieldUpdateOperationsInputObjectSchema),
-      ])
-      .optional(),
+      .optional()
+      .nullable(),
     tax_federal_amount: z
       .union([
         z.number(),
-        z.lazy(() => IntFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableFloatFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
-    tax_federal_percent: z
-      .union([
-        z.number(),
-        z.lazy(() => FloatFieldUpdateOperationsInputObjectSchema),
-      ])
-      .optional(),
+      .optional()
+      .nullable(),
     tax_total: z
       .union([
         z.number(),
-        z.lazy(() => IntFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableFloatFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
-    method: z
+      .optional()
+      .nullable(),
+    payment_type: z
       .union([
-        z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => PaymentMethodSchema),
+        z.lazy(
+          () => NullableEnumPaymentMethodFieldUpdateOperationsInputObjectSchema,
+        ),
       ])
-      .optional(),
-    type: z
+      .optional()
+      .nullable(),
+    transaction_type: z
       .union([
-        z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => ReceiptTypeSchema),
+        z.lazy(
+          () => NullableEnumReceiptTypeFieldUpdateOperationsInputObjectSchema,
+        ),
       ])
-      .optional(),
+      .optional()
+      .nullable(),
     fileName: z
       .union([
         z.string(),
-        z.lazy(() => StringFieldUpdateOperationsInputObjectSchema),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
       ])
-      .optional(),
+      .optional()
+      .nullable(),
+    merchant_name: z
+      .union([
+        z.string(),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
+    merchant_address: z
+      .union([
+        z.string(),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
+    merchant_email: z
+      .union([
+        z.string(),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
+    merchant_phone_number: z
+      .union([
+        z.string(),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
+    merchant_representative: z
+      .union([
+        z.string(),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
+    refund_expiration_date: z
+      .union([
+        z.string(),
+        z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema),
+      ])
+      .optional()
+      .nullable(),
   })
   .strict();
 

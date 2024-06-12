@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Receipt" ALTER COLUMN "tax_total" SET DATA TYPE DOUBLE PRECISION;

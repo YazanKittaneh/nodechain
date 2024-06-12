@@ -1,52 +1,119 @@
 import { z } from 'zod';
 import { SortOrderSchema } from '../enums/SortOrder.schema';
 import { SortOrderInputObjectSchema } from './SortOrderInput.schema';
-import { MerchantOrderByWithRelationInputObjectSchema } from './MerchantOrderByWithRelationInput.schema';
-import { ItemsOrderByWithRelationInputObjectSchema } from './ItemsOrderByWithRelationInput.schema';
-import { TransactionOrderByWithRelationInputObjectSchema } from './TransactionOrderByWithRelationInput.schema';
 
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.ReceiptOrderByWithRelationInput> = z
   .object({
     id: z.lazy(() => SortOrderSchema).optional(),
-    merchantId: z
+    back_of_receipt: z
       .union([
         z.lazy(() => SortOrderSchema),
         z.lazy(() => SortOrderInputObjectSchema),
       ])
       .optional(),
-    itemsId: z
+    date: z
       .union([
         z.lazy(() => SortOrderSchema),
         z.lazy(() => SortOrderInputObjectSchema),
       ])
       .optional(),
-    transactionId: z
+    credit_card_digits: z
       .union([
         z.lazy(() => SortOrderSchema),
         z.lazy(() => SortOrderInputObjectSchema),
       ])
       .optional(),
-    date: z.lazy(() => SortOrderSchema).optional(),
-    card_info: z.lazy(() => SortOrderSchema).optional(),
-    total_price: z.lazy(() => SortOrderSchema).optional(),
-    title: z.lazy(() => SortOrderSchema).optional(),
-    invoice_number: z.lazy(() => SortOrderSchema).optional(),
-    tax_state_amount: z.lazy(() => SortOrderSchema).optional(),
-    tax_state_percent: z.lazy(() => SortOrderSchema).optional(),
-    tax_federal_amount: z.lazy(() => SortOrderSchema).optional(),
-    tax_federal_percent: z.lazy(() => SortOrderSchema).optional(),
-    tax_total: z.lazy(() => SortOrderSchema).optional(),
-    method: z.lazy(() => SortOrderSchema).optional(),
-    type: z.lazy(() => SortOrderSchema).optional(),
-    fileName: z.lazy(() => SortOrderSchema).optional(),
-    merchant: z
-      .lazy(() => MerchantOrderByWithRelationInputObjectSchema)
+    total_price: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
       .optional(),
-    items: z.lazy(() => ItemsOrderByWithRelationInputObjectSchema).optional(),
-    transaction: z
-      .lazy(() => TransactionOrderByWithRelationInputObjectSchema)
+    total_tax_paid: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    receipt_number: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    tax_state_amount: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    tax_federal_amount: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    tax_total: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    payment_type: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    transaction_type: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    fileName: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    merchant_name: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    merchant_address: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    merchant_email: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    merchant_phone_number: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    merchant_representative: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
+      .optional(),
+    refund_expiration_date: z
+      .union([
+        z.lazy(() => SortOrderSchema),
+        z.lazy(() => SortOrderInputObjectSchema),
+      ])
       .optional(),
   })
   .strict();

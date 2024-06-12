@@ -1,14 +1,12 @@
 import { z } from 'zod';
 import { IntFilterObjectSchema } from './IntFilter.schema';
-import { IntNullableFilterObjectSchema } from './IntNullableFilter.schema';
-import { StringFilterObjectSchema } from './StringFilter.schema';
-import { FloatFilterObjectSchema } from './FloatFilter.schema';
-import { MerchantRelationFilterObjectSchema } from './MerchantRelationFilter.schema';
-import { MerchantWhereInputObjectSchema } from './MerchantWhereInput.schema';
-import { ItemsRelationFilterObjectSchema } from './ItemsRelationFilter.schema';
-import { ItemsWhereInputObjectSchema } from './ItemsWhereInput.schema';
-import { TransactionRelationFilterObjectSchema } from './TransactionRelationFilter.schema';
-import { TransactionWhereInputObjectSchema } from './TransactionWhereInput.schema';
+import { BoolNullableFilterObjectSchema } from './BoolNullableFilter.schema';
+import { StringNullableFilterObjectSchema } from './StringNullableFilter.schema';
+import { FloatNullableFilterObjectSchema } from './FloatNullableFilter.schema';
+import { EnumPaymentMethodNullableFilterObjectSchema } from './EnumPaymentMethodNullableFilter.schema';
+import { PaymentMethodSchema } from '../enums/PaymentMethod.schema';
+import { EnumReceiptTypeNullableFilterObjectSchema } from './EnumReceiptTypeNullableFilter.schema';
+import { ReceiptTypeSchema } from '../enums/ReceiptType.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -31,76 +29,82 @@ const Schema: z.ZodType<Prisma.ReceiptWhereInput> = z
       ])
       .optional(),
     id: z.union([z.lazy(() => IntFilterObjectSchema), z.number()]).optional(),
-    merchantId: z
-      .union([z.lazy(() => IntNullableFilterObjectSchema), z.number()])
-      .optional()
-      .nullable(),
-    itemsId: z
-      .union([z.lazy(() => IntNullableFilterObjectSchema), z.number()])
-      .optional()
-      .nullable(),
-    transactionId: z
-      .union([z.lazy(() => IntNullableFilterObjectSchema), z.number()])
+    back_of_receipt: z
+      .union([z.lazy(() => BoolNullableFilterObjectSchema), z.boolean()])
       .optional()
       .nullable(),
     date: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
-    card_info: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
+    credit_card_digits: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
     total_price: z
-      .union([z.lazy(() => FloatFilterObjectSchema), z.number()])
-      .optional(),
-    title: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
-    invoice_number: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
+      .union([z.lazy(() => FloatNullableFilterObjectSchema), z.number()])
+      .optional()
+      .nullable(),
+    total_tax_paid: z
+      .union([z.lazy(() => FloatNullableFilterObjectSchema), z.number()])
+      .optional()
+      .nullable(),
+    receipt_number: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
     tax_state_amount: z
-      .union([z.lazy(() => IntFilterObjectSchema), z.number()])
-      .optional(),
-    tax_state_percent: z
-      .union([z.lazy(() => FloatFilterObjectSchema), z.number()])
-      .optional(),
+      .union([z.lazy(() => FloatNullableFilterObjectSchema), z.number()])
+      .optional()
+      .nullable(),
     tax_federal_amount: z
-      .union([z.lazy(() => IntFilterObjectSchema), z.number()])
-      .optional(),
-    tax_federal_percent: z
-      .union([z.lazy(() => FloatFilterObjectSchema), z.number()])
-      .optional(),
+      .union([z.lazy(() => FloatNullableFilterObjectSchema), z.number()])
+      .optional()
+      .nullable(),
     tax_total: z
-      .union([z.lazy(() => IntFilterObjectSchema), z.number()])
-      .optional(),
-    method: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
-    type: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
+      .union([z.lazy(() => FloatNullableFilterObjectSchema), z.number()])
+      .optional()
+      .nullable(),
+    payment_type: z
+      .union([
+        z.lazy(() => EnumPaymentMethodNullableFilterObjectSchema),
+        z.lazy(() => PaymentMethodSchema),
+      ])
+      .optional()
+      .nullable(),
+    transaction_type: z
+      .union([
+        z.lazy(() => EnumReceiptTypeNullableFilterObjectSchema),
+        z.lazy(() => ReceiptTypeSchema),
+      ])
+      .optional()
+      .nullable(),
     fileName: z
-      .union([z.lazy(() => StringFilterObjectSchema), z.string()])
-      .optional(),
-    merchant: z
-      .union([
-        z.lazy(() => MerchantRelationFilterObjectSchema),
-        z.lazy(() => MerchantWhereInputObjectSchema),
-      ])
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
       .optional()
       .nullable(),
-    items: z
-      .union([
-        z.lazy(() => ItemsRelationFilterObjectSchema),
-        z.lazy(() => ItemsWhereInputObjectSchema),
-      ])
+    merchant_name: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
       .optional()
       .nullable(),
-    transaction: z
-      .union([
-        z.lazy(() => TransactionRelationFilterObjectSchema),
-        z.lazy(() => TransactionWhereInputObjectSchema),
-      ])
+    merchant_address: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
+    merchant_email: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
+    merchant_phone_number: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
+    merchant_representative: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
+      .optional()
+      .nullable(),
+    refund_expiration_date: z
+      .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
       .optional()
       .nullable(),
   })

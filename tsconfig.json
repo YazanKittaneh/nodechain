@@ -1,6 +1,7 @@
 {
+  // https://www.typescriptlang.org/tsconfig#compilerOptions
   "compilerOptions": {
-    "target": "es6",
+    
     "sourceMap": true,
     "module": "commonjs",
     "strict": true,
